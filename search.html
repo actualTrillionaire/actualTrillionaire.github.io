@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search Tool | Catrillionaire Journalism</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><details><summary>&#9776; Navigation</summary><nav class="menu">
+<a href="index.html">Home</a>
+<a href="article/index.html">Journalism Index</a>
+<a href="collab.html">Collab with Us!</a>
+<a href="search.html">Search Tool</a>
+<a href="about.html">About &amp; Contact</a>
+</nav></details></header>
+<main>
+<h1>Search Tool</h1>
+<form class="s" id="sf" role="search">
+<label for="q">Term</label>
+<input id="q" type="search" autocomplete="off">
+<button aria-label="Search">&#128269;</button>
+</form>
+<div class="sort">Results: Sort by:
+<button type="button" data-o="best" aria-pressed="true">Best match</button>
+<button type="button" data-o="index" aria-pressed="false">Index order</button>
+</div>
+<div id="out" class="res"><p class="empty">Type a word or phrase to search the articles.</p></div>
+</main>
+<script src="search.js"></script>
+</body>
+</html>
