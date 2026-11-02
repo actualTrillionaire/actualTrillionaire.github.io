@@ -1,11 +1,11 @@
-// Search Tool: reads the links in article/index.html, opens each article,
+// Search Tool: reads the links in index.html, opens each article,
 // and looks for the search term in the text. No list to maintain.
 (function () {
   var q = document.getElementById('q');
   var out = document.getElementById('out');
   var sort = 'best';
   var loading = null;
-  var indexURL = new URL('article/index.html', location.href);
+  var indexURL = new URL('index.html', location.href);
 
   function esc(s) {
     return s.replace(/[&<>"']/g, function (c) {
@@ -39,7 +39,7 @@
   function load() {
     if (loading) return loading;
     loading = fetch(indexURL).then(function (r) {
-      if (!r.ok) throw new Error('Could not open article/index.html (' + r.status + ')');
+      if (!r.ok) throw new Error('Could not open index.html (' + r.status + ')');
       return r.text();
     }).then(function (html) {
       var doc = new DOMParser().parseFromString(html, 'text/html');
