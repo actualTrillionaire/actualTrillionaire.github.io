@@ -43,3 +43,16 @@ form.s button{background:none;border:0;font-size:1.4rem;cursor:pointer;color:inh
 .res blockquote{margin:.5rem 0 0;border:2px solid var(--fg);border-radius:4px;padding:.5rem .7rem;font-size:.95rem}
 mark{background:var(--mark);color:inherit;padding:0 2px}
 .empty{color:var(--muted);font-style:italic}
+
+/* search results: mentions grouped by article */
+.count{margin:0 0 1rem;color:var(--muted)}
+.grp{margin:0 0 1.5rem}
+.grp h3{margin:0;font-size:1.15rem}
+.grp .meta{margin:.1rem 0 .4rem}
+.hits{list-style:none;margin:0;padding:0;border-top:1px solid var(--muted)}
+.hits li{border-bottom:1px solid var(--muted)}
+.hits a{display:block;padding:.3rem 0;font-size:.95rem;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hits a:hover{background:var(--card)}
+.grp summary{max-width:none;margin:0;padding:.3rem 0;font-size:.9rem;color:var(--accent)}
+.pager button{font-weight:700;font-size:.95rem;background:none;color:inherit;border:2px solid var(--fg);border-radius:999px;padding:.2rem .85rem;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
