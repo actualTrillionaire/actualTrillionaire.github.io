@@ -1,9 +1,13 @@
-// Search Tool: reads the links in index.html, opens each article,
-// and looks for the search term in the text. No list to maintain.
+// Search Tool: reads the links in index.html, opens each article, and lists
+// every mention of the search term, grouped under the article it appears in.
 (function () {
+  var ARTICLES_PER_PAGE = 10;   // articles shown per screen
+  var MENTIONS_SHOWN = 10;      // mentions shown per article before "more"
   var q = document.getElementById('q');
   var out = document.getElementById('out');
   var sort = 'best';
+  var page = 1;
+  var groups = [];
   var loading = null;
   var indexURL = new URL('index.html', location.href);
 
@@ -14,7 +18,9 @@
   }
   function rx(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
   function clean(t) { return t.replace(/\s+/g, ' ').trim(); }
+  function say(msg) { out.innerHTML = '<p class="empty">' + esc(msg) + '</p>'; }
 
+  // Open one article and split its text into blocks (title, paragraphs, list items, quotes)
   function readPage(url) {
     return fetch(url).then(function (r) {
       if (!r.ok) throw new Error(url + ' (' + r.status + ')');
@@ -22,20 +28,22 @@
     }).then(function (html) {
       var doc = new DOMParser().parseFromString(html, 'text/html');
       var main = doc.querySelector('main') || doc.body;
+      [].forEach.call(main.querySelectorAll('br'), function (b) { b.replaceWith(' '); });
       var h1 = main.querySelector('h1');
       var meta = main.querySelector('.meta');
-      var paras = [].map.call(main.querySelectorAll('p, li, blockquote, h2, h3'), function (e) {
-        return clean(e.textContent);
-      }).filter(Boolean);
+      var blocks = [].filter.call(main.querySelectorAll('h1, h2, h3, p, li, blockquote'), function (e) {
+        return !e.matches('.meta') && !e.querySelector('h1, h2, h3, p, li, blockquote');
+      }).map(function (e) { return clean(e.textContent); }).filter(Boolean);
       return {
         url: url,
         title: clean(h1 ? h1.textContent : doc.title || url),
         meta: meta ? clean(meta.textContent) : '',
-        paras: paras
+        blocks: blocks
       };
     });
   }
 
+  // Find every article linked from index.html and read them all (once)
   function load() {
     if (loading) return loading;
     loading = fetch(indexURL).then(function (r) {
@@ -61,46 +69,92 @@
     return loading;
   }
 
+  // A link that jumps to the spot in the article (browsers that don't support it just open the page)
+  function jumpLink(url, text, at, len) {
+    var a = text.lastIndexOf(' ', Math.max(0, at - 20));
+    a = a < 0 ? 0 : a + 1;
+    var b = text.indexOf(' ', Math.min(text.length, at + len + 20));
+    if (b < 0) b = text.length;
+    return url + '#:~:text=' + encodeURIComponent(text.slice(a, b)).replace(/-/g, '%2D');
+  }
+
+  function search(term, list) {
+    var re = new RegExp(rx(term), 'gi');
+    var hl = new RegExp(rx(esc(term)), 'gi');
+    var mark = function (s) { return esc(s).replace(hl, function (m) { return '<mark>' + m + '</mark>'; }); };
+    var result = [];
+    list.forEach(function (p, order) {
+      var lines = [];
+      p.blocks.forEach(function (text) {
+        var m;
+        re.lastIndex = 0;
+        while ((m = re.exec(text))) {
+          if (!m[0]) { re.lastIndex++; continue; }
+          var from = Math.max(0, m.index - 30);
+          var to = Math.min(text.length, m.index + m[0].length + 60);
+          lines.push('<li><a href="' + esc(jumpLink(p.url, text, m.index, m[0].length)) + '">' +
+            (from > 0 ? '\u2026' : '') + mark(text.slice(from, to)) + (to < text.length ? '\u2026' : '') +
+            '</a></li>');
+        }
+      });
+      if (!lines.length) return;
+      var more = lines.slice(MENTIONS_SHOWN);
+      result.push({
+        order: order,
+        count: lines.length,
+        html: '<section class="grp"><h3><a href="' + esc(p.url) + '">' + mark(p.title) + '</a></h3>' +
+          '<div class="meta">' + (p.meta ? esc(p.meta) + ' \u00b7 ' : '') + lines.length +
+          (lines.length === 1 ? ' mention' : ' mentions') + '</div>' +
+          '<ul class="hits">' + lines.slice(0, MENTIONS_SHOWN).join('') + '</ul>' +
+          (more.length ? '<details><summary>+ ' + more.length + ' more ' + (more.length === 1 ? 'mention' : 'mentions') +
+            '</summary><ul class="hits">' + more.join('') + '</ul></details>' : '') +
+          '</section>'
+      });
+    });
+    result.sort(sort === 'best'
+      ? function (a, b) { return b.count - a.count || a.order - b.order; }
+      : function (a, b) { return a.order - b.order; });
+    return result;
+  }
+
+  function draw(term) {
+    if (!groups.length) { say('No mentions of \u201c' + term + '\u201d found.'); return; }
+    var pages = Math.ceil(groups.length / ARTICLES_PER_PAGE);
+    page = Math.min(Math.max(page, 1), pages);
+    var total = groups.reduce(function (n, g) { return n + g.count; }, 0);
+    var shown = groups.slice((page - 1) * ARTICLES_PER_PAGE, page * ARTICLES_PER_PAGE);
+    out.innerHTML =
+      '<p class="count">' + total + (total === 1 ? ' mention' : ' mentions') + ' in ' + groups.length +
+      (groups.length === 1 ? ' article' : ' articles') + '</p>' +
+      shown.map(function (g) { return g.html; }).join('') +
+      (pages > 1 ? '<div class="pager"><button type="button" data-pg="-1"' + (page === 1 ? ' disabled' : '') +
+        '>&larr; Prev</button><span>Page ' + page + ' of ' + pages + '</span><button type="button" data-pg="1"' +
+        (page === pages ? ' disabled' : '') + '>Next &rarr;</button></div>' : '');
+  }
+
   function run() {
     var term = q.value.trim();
     try { history.replaceState(null, '', term ? '?q=' + encodeURIComponent(term) : location.pathname); } catch (e) {}
-    if (!term) {
-      out.innerHTML = '<p class="empty">Type a word or phrase to search the articles.</p>';
-      return;
-    }
-    out.innerHTML = '<p class="empty">Searching...</p>';
+    if (!term) { say('Type a word or phrase to find every mention in the articles.'); return; }
+    say('Searching...');
     load().then(function (list) {
       if (q.value.trim() !== term) return; // typed something newer meanwhile
-      var re = new RegExp(rx(term), 'gi');
-      var hl = new RegExp(rx(esc(term)), 'gi');
-      var count = function (s) { return (s.match(re) || []).length; };
-      var hits = [];
-      list.forEach(function (p, i) {
-        var score = count(p.title) * 3 + p.paras.reduce(function (a, s) { return a + count(s); }, 0);
-        if (!score) return;
-        var para = p.paras.filter(function (s) { return count(s); })[0] || p.paras[0] || '';
-        if (para.length > 300) {
-          var at = Math.max(0, para.search(re) - 100);
-          para = (at ? '\u2026' : '') + para.slice(at, at + 300) + '\u2026';
-        }
-        hits.push({ p: p, i: i, score: score, para: para });
-      });
-      hits.sort(sort === 'best'
-        ? function (a, b) { return b.score - a.score; }
-        : function (a, b) { return a.i - b.i; });
-      var mark = function (s) { return esc(s).replace(hl, function (m) { return '<mark>' + m + '</mark>'; }); };
-      out.innerHTML = hits.length ? hits.map(function (h) {
-        return '<a class="card" href="' + esc(h.p.url) + '">' +
-          (h.p.meta ? '<div class="meta">' + esc(h.p.meta) + '</div>' : '') +
-          '<h3>' + mark(h.p.title) + '</h3>' +
-          (h.para ? '<blockquote>' + mark(h.para) + '</blockquote>' : '') + '</a>';
-      }).join('') : '<p class="empty">No results for \u201c' + esc(term) + '\u201d.</p>';
+      groups = search(term, list);
+      page = 1;
+      draw(term);
     }).catch(function (e) {
-      out.innerHTML = '<p class="empty">Search problem: ' + esc(e.message) +
-        (location.protocol === 'file:' ? ' (Search only works on the hosted site, not when the file is opened from your computer.)' : '') + '</p>';
+      say('Search problem: ' + e.message +
+        (location.protocol === 'file:' ? ' (Search only works on the hosted site, not when the file is opened from your computer.)' : ''));
     });
   }
 
+  out.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pg]');
+    if (!b) return;
+    page += +b.dataset.pg;
+    draw(q.value.trim());
+    window.scrollTo(0, 0);
+  });
   document.getElementById('sf').addEventListener('submit', function (e) { e.preventDefault(); run(); });
   q.addEventListener('input', run);
   document.querySelectorAll('[data-o]').forEach(function (b) {
