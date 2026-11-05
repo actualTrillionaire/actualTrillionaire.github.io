@@ -6,12 +6,14 @@
 <title>Catrillionaire News Index | Catrillionaire Journalism</title>
 <link rel="stylesheet" href="style.css">
 </head>
-     <script>
+     
+<script>
 // Sorts the article cards by the date in each card's top line (like "Article 1: 11/3/2026")
-(function () {
-  var more = document.querySelector('.more');
-  var cards = [].slice.call(document.querySelectorAll('main > a.card'));
-  if (!more || !cards.length) return;
+document.addEventListener('DOMContentLoaded', function () {
+  var cards = [].slice.call(document.querySelectorAll('main a.card'));
+  if (!cards.length) return;
+  var parent = cards[0].parentNode;
+  var more = parent.querySelector(':scope > .more');
   function when(card) {
     var m = (card.querySelector('.meta') || card).textContent.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     return m ? new Date(+m[3], +m[1] - 1, +m[2]).getTime() : 0;
@@ -19,15 +21,19 @@
   function sortBy(dir) {
     cards.map(function (c, i) { return { c: c, i: i, t: when(c) }; })
       .sort(function (a, b) { return dir === 'new' ? (b.t - a.t || b.i - a.i) : (a.t - b.t || a.i - b.i); })
-      .forEach(function (x) { more.before(x.c); });
-    document.querySelectorAll('[data-d]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.d === dir); });
+      .forEach(function (x) { parent.insertBefore(x.c, more); });
+    document.querySelectorAll('[data-d]').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.d === dir);
+    });
   }
-  document.querySelectorAll('[data-d]').forEach(function (b) {
-    b.addEventListener('click', function () { sortBy(b.dataset.d); });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-d]');
+    if (b) sortBy(b.dataset.d);
   });
   sortBy('new');
-})();
+});
 </script>
+     
 <body>
 <header><details><summary>&#9776; Navigation</summary><nav class="menu">
 <a href="index.html">Home / Article Index</a>
