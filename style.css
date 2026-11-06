@@ -56,3 +56,16 @@ mark{background:var(--mark);color:inherit;padding:0 2px}
 .grp summary{max-width:none;margin:0;padding:.3rem 0;font-size:.9rem;color:var(--accent)}
 .pager button{font-weight:700;font-size:.95rem;background:none;color:inherit;border:2px solid var(--fg);border-radius:999px;padding:.2rem .85rem;cursor:pointer}
 .pager button:disabled{opacity:.4;cursor:default}
+
+
+
+/* article images */
+.fig{margin:1.25rem 0;text-align:center}
+.fig img,.gallery img{max-width:100%;height:auto;border:2px solid var(--fg);border-radius:6px;background:var(--card)}
+.gallery{display:flex;flex-wrap:wrap;gap:.75rem;justify-content:center;align-items:flex-start;margin:1.25rem 0}
+.gallery img{flex:1 1 280px;min-width:0;max-width:300px}
+.pics{display:flex;gap:.75rem;justify-content:center;margin:1.25rem 0}
+.pics figure{flex:1 1 0;min-width:0;max-width:200px;margin:0;text-align:center}
+.pics img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;object-position:top;border:2px solid var(--fg);border-radius:6px}
+.pics figcaption{margin-top:.3rem;font-size:.85rem;color:var(--muted)}
+
